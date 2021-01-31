@@ -248,6 +248,10 @@ else
     > "${NFT_FILES_DIR}/${TABLE_NAME}.nft"
 fi
 
+if $(systemctl is-active docker >/dev/null); then
+  run systemctl reload docker
+fi
+
 (>&2 echo -en "[$(date '+%F %H:%M:%S')][notice]\\t" )
 if $dry_run; then
   (>&2 echo "nftable ${TABLE_FAMILY} ${TABLE_NAME} not changed, dry run." )
