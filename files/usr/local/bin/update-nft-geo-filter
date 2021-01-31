@@ -240,6 +240,7 @@ run /usr/local/bin/nft-geo-filter \
     ${policy[@]:+"${policy[@]}"} \
       "${countries_arr[@]}"
 
+# save new table so that it gets loaded on reboot
 run mkdir -p "${NFT_FILES_DIR}"
 if $dry_run; then
   true -- /sbin/nft list table "${TABLE_FAMILY}" "${TABLE_NAME}"
@@ -248,6 +249,7 @@ else
     > "${NFT_FILES_DIR}/${TABLE_NAME}.nft"
 fi
 
+# reload docker
 if $(systemctl is-active docker >/dev/null); then
   run systemctl reload docker
 fi
