@@ -44,29 +44,12 @@ git clone git@github.com:CristianCantoro/ssh-geoip-filter.git
 4. Update the configuration file at `/etc/update-nft-geo-filter.conf` and set
 the values of the variables.
 
-5. Test if `sshfilter` is working:
-
-```bash
-$ sshfilter -v 8.8.8.8
-[2018-04-24_14:15:45][info]	DENY sshd connection from 8.8.8.8 (US)
-```
-
-You can also check the logs at `/var/log/auth.log`:
-
-```bash
-$ [sudo] tail -n1 /var/log/auth.log
-Apr 24 14:15:45 inara cristian: DENY sshd connection from 8.8.8.8 (US)
-```
-
-6. Copy `files/etc/hosts.allow` and `files/etc/hosts.deny` to
-   `/etc/hosts.allow` and `/etc/hosts.deny` respectively
-
-7. Add a crontab job (as root) to update the geoip database:
+5. Add a crontab job (as root) to update the geoip database:
 
 ```bash
 (sudo crontab -l && echo '
-# Update GeoIP database every 15 days
-05  06  */15   *    *     /usr/local/bin/update-geoip >> /var/log/geoip.log
+# Update GeoIP database every day at 03:00
+0 3 * * * /usr/local/bin/update-nft-geo-filter -c '/etc/update-nft-geo-filter.conf' >/var/log/update-nft-geo-filter.log 2>&1
 ') | sudo crontab -
 ```
 
