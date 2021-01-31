@@ -1,0 +1,258 @@
+#!/bin/bash
+# shellcheck disable=SC2128
+SOURCED=false && [ "$0" = "$BASH_SOURCE" ] || SOURCED=true
+
+# set PATH to a sane default
+PATH='/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin'
+
+if ! $SOURCED; then
+  set -euo pipefail
+  IFS=$'\n\t'
+fi
+
+#################### helpers
+function check_file() {
+  local myfile="$1"
+  local option="$2"
+
+  if [[ ! -e "$myfile" ]]; then
+    (>&2 echo "Error in option '$option': $myfile is not a valid file.")
+    exit 1
+  fi
+
+}
+
+function array_contains () {
+  local seeking=$1; shift
+  local in=1
+  for element; do
+      if [[ "$element" == "$seeking" ]]; then
+          in=0
+          break
+      fi
+  done
+  return $in
+}
+
+function check_choices() {
+  local mychoice="$1"
+  declare -a choices="($2)"
+
+  set +u
+  if ! array_contains "$mychoice" "${choices[@]}"; then
+    (>&2 echo -n "$mychoice is not within acceptable choices: {")
+    (echo -n "${choices[@]}" | sed -re 's# #, #g' >&2)
+    (>&2 echo '}' )
+    exit 1
+  fi
+  set -u
+
+}
+
+function rerun_as_root() {
+  if [ "$(id -u)" -ne "0" ]; then
+    (>&2 echo "Warning: This script will be re-run as root.")
+    args="$(echo "$*" | tr $'\n' ' ')"
+    exec sudo -E su 'root' -c "/bin/bash $0 $args"
+    exit 0
+  fi
+}
+#################### end: helpers
+
+#################### Usage
+SCRIPTNAME=$(basename "$0")
+function short_usage() {
+  (>&2 echo \
+"Usage:
+  $SCRIPTNAME [options] [-c <config>]
+  $SCRIPTNAME -h")
+}
+
+function usage() {
+  short_usage
+  (>&2 echo \
+"
+Update nftables' IP addresses geolocation.
+
+Options:
+  -d            Print debug information (implies -v).
+  -c <config>   Configuration file [default: /etc/update-nft-geo-filter.conf].
+  -n            Do not output any file.
+  -v            Print log information on console.
+  -h            Show this help and exits.
+
+Example:
+  $SCRIPTNAME")
+}
+####################
+
+rerun_as_root "$@" --
+(>&2 echo -en "[$(date '+%F %H:%M:%S')][notice]\\t" )
+(>&2 echo "Start nftable geo-filter uppdate." )
+
+#################### Options
+debug=false
+dry_run=false
+verbose=false
+
+config='/etc/update-nft-geo-filter.conf'
+while getopts ":c:dhnv" opt; do
+  case $opt in
+    c)
+      check_file "$OPTARG" '-c'
+      config="$OPTARG"
+      ;;
+    d)
+      debug=true
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    n)
+      dry_run=true
+      ;;
+    v)
+      verbose=true
+      ;;
+    \?)
+      (>&2 echo "Error: invalid option $1")
+      usage
+      exit 1
+      ;;
+    :)
+      (>&2 echo "Error.Option -$OPTARG requires an argument.")
+      exit 1
+      ;;
+  esac
+done
+
+if $debug; then verbose=true; fi
+
+if $verbose; then
+  function echoverbose() {
+    (>&2 echo -en "[$(date '+%F %H:%M:%S')][info]\\t" )
+    (>&2 echo "$@" )
+  }
+else
+  function echoverbose() { true; }
+fi
+
+if $dry_run; then
+  function run() {
+    true -- "$@"
+  }
+else
+  function run() {
+    "$@"
+  }
+fi
+####################
+
+echoverbose 'Options:'
+echoverbose " * config (-c): $config"
+echoverbose " * debug (-d): $debug"
+echoverbose " * dry_run (-n): $dry_run"
+echoverbose " * verbose (-v): $verbose"
+
+#################### configuration
+declare -a POLICY_CHOICES=('ALLOW' 'DENY')
+
+# default values for config
+INTERFACE=''
+TABLE_NAME=''
+TABLE_FAMILY=''
+COUNTRIES=''
+ALLOW_IPS=''
+NFT_FILES_DIR='/etc/nftables.d'
+
+if [ ! -f "$config" ]; then
+  (>&2 echo "Error: config file $config not found.")
+  exit 2
+else
+  # shellcheck disable=SC1090,SC1091
+  source "$config"
+fi
+
+# check if policy choice is valid
+policy_name="${POLICY^^}"
+check_choices "$policy_name" "${POLICY_CHOICES[*]}"
+
+if [ -z "${INTERFACE}" ]; then
+  (>&2 echo "Error: variable INTERFACE is not set")
+  exit 1
+fi
+
+if [ -z "${TABLE_NAME}" ]; then
+  (>&2 echo "Error: variable TABLE_NAME is not set")
+  exit 1
+fi
+
+if [ -z "${TABLE_FAMILY}" ]; then
+  (>&2 echo "Error: variable TABLE_FAMILY is not set")
+  exit 1
+fi
+
+if [ -z "${COUNTRIES}" ]; then
+  (>&2 echo "Error: variable COUNTRIES is not set")
+  exit 1
+fi
+
+set -u
+#################### end: configuration
+
+echoverbose 'Arguments:'
+echoverbose " * INTERFACE: $INTERFACE"
+echoverbose " * TABLE_NAME: $TABLE_NAME"
+echoverbose " * TABLE_FAMILY: $TABLE_FAMILY"
+echoverbose " * COUNTRIES: $COUNTRIES"
+echoverbose " * ALLOW_IPS: $ALLOW_IPS"
+echoverbose " * NFT_FILES_DIR: $NFT_FILES_DIR"
+
+declare -a policy
+policy=()
+if [ "$policy_name" = 'ALLOW' ]; then
+  policy=('--allow')
+fi
+
+# convert country string to an array
+declare -a countries_arr
+IFS=' ' read -r -a countries_arr <<< "$COUNTRIES"
+
+# convert allow ips to the related option
+declare -a exceptions_opt
+exceptions_opt=()
+if [ ! -z "${ALLOW_IPS}" ]; then
+  allow_ips_comma="${ALLOW_IPS// /,}"
+  exceptions_opt=('--exceptions' "$allow_ips_comma")
+fi
+
+if $debug; then set -x; fi
+
+# update nft table
+run /usr/local/bin/nft-geo-filter \
+    --interface "$INTERFACE" \
+    --table-family "${TABLE_FAMILY}" \
+    --table-name "$TABLE_NAME" \
+    --log-drop \
+    --log-drop-prefix "$TABLE_NAME DROP " \
+    ${exceptions_opt[@]:+"${exceptions_opt[@]}"} \
+    ${policy[@]:+"${policy[@]}"} \
+      "${countries_arr[@]}"
+
+run mkdir -p "${NFT_FILES_DIR}"
+if $dry_run; then
+  true -- /sbin/nft list table "${TABLE_FAMILY}" "${TABLE_NAME}"
+else
+  /sbin/nft list table "${TABLE_FAMILY}" "${TABLE_NAME}" \
+    > "${NFT_FILES_DIR}/${TABLE_NAME}.nft"
+fi
+
+(>&2 echo -en "[$(date '+%F %H:%M:%S')][notice]\\t" )
+if $dry_run; then
+  (>&2 echo "nftable ${TABLE_FAMILY} ${TABLE_NAME} not changed, dry run." )
+else
+  (>&2 echo "nftable ${TABLE_FAMILY} ${TABLE_NAME} updated successfully." )
+fi
+
+exit 0

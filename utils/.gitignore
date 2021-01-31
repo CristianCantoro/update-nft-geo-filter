@@ -1,0 +1,8 @@
+# ignore data dir
+data/
+
+# ignore config file
+config.yaml
+
+# ignore pyenv's .python-version
+.python-version
