@@ -49,7 +49,7 @@ the values of the variables.
 ```bash
 (sudo crontab -l && echo '
 # Update GeoIP database every day at 03:00
-0 3 */5 * * /usr/local/bin/update-nft-geo-filter -c '/etc/update-nft-geo-filter.conf' >/var/log/update-nft-geo-filter.log 2>&1
+0 3 */5 * * /usr/local/bin/update-nft-geo-filter -c /etc/update-nft-geo-filter.conf >/var/log/update-nft-geo-filter.log 2>&1
 ') | sudo crontab -
 ```
 
