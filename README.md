@@ -28,10 +28,10 @@ These scripts are based on [`nft-geo-filter`](https://github.com/rpthms/nft-geo-
 1. Clone the repo:
 
 ```bash
-git clone git@github.com:CristianCantoro/ssh-geoip-filter.git
+git clone git@github.com:CristianCantoro/update-nft-geo-filter.git
 ```
 
-2. Get into the repo directory: `cd ssh-geoip-filter`
+2. Get into the repo directory: `cd update-nft-geo-filter`
 
 3. Copy:
 
@@ -47,10 +47,10 @@ the values of the variables.
 5. Add a crontab job (as root) to update the geoip database:
 
 ```bash
-(sudo crontab -l && echo '
+(sudo crontab -l && echo "
 # Update GeoIP database every day at 03:00
-0 3 */5 * * /usr/local/bin/update-nft-geo-filter -c /etc/update-nft-geo-filter.conf >/var/log/update-nft-geo-filter.log 2>&1
-') | sudo crontab -
+0 3 */5 * * /usr/local/bin/update-nft-geo-filter -c '/etc/update-nft-geo-filter.conf' >>/var/log/update-nft-geo-filter.log 2>&1
+") | sudo crontab -
 ```
 
 ## Utils
@@ -58,7 +58,7 @@ the values of the variables.
 The script `ngf-parse-log.py` parses timestamps from log file to convert them
 to ISO format, so they are easier to process.
 
-`sgf-parse-log.py`:
+`ngf-parse-log.py`:
 
 ```bash
 Parse timestamps from log file to convert it to ISO.
@@ -86,25 +86,25 @@ Options:
   --version                     Show version.
 ```
 
-Example usage:
+### Example usage
 
-* sample data:
+#### Sample data
 
 ```bash
 $ grep 'geo-filter DROP' /var/log/syslog | tail -n5
-an 31 12:44:03 river kernel: [260618.278101] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=194.147.140.24 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=242 ID=64299 PROTO=TCP SPT=59582 DPT=11027 WINDOW=1024 RES=0x00 SYN URGP=0 
-Jan 31 12:44:31 river kernel: [260646.444304] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=194.147.140.21 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=242 ID=44168 PROTO=TCP SPT=58507 DPT=41390 WINDOW=1024 RES=0x00 SYN URGP=0 
-Jan 31 12:45:40 river kernel: [260715.128307] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=194.147.140.25 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=242 ID=24028 PROTO=TCP SPT=41873 DPT=54294 WINDOW=1024 RES=0x00 SYN URGP=0 
-Jan 31 12:46:09 river kernel: [260744.333203] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=221.164.31.44 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=49 ID=54844 PROTO=TCP SPT=28049 DPT=23 WINDOW=47224 RES=0x00 SYN URGP=0 
-Jan 31 12:46:28 river kernel: [260763.664021] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=185.156.73.12 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=180 ID=51557 PROTO=TCP SPT=57520 DPT=33443 WINDOW=1024 RES=0x00 SYN URGP=0 
+an 31 12:44:03 river kernel: [260618.278101] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=194.147.140.24 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=242 ID=64299 PROTO=TCP SPT=59582 DPT=11027 WINDOW=1024 RES=0x00 SYN URGP=0
+Jan 31 12:44:31 river kernel: [260646.444304] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=194.147.140.21 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=242 ID=44168 PROTO=TCP SPT=58507 DPT=41390 WINDOW=1024 RES=0x00 SYN URGP=0
+Jan 31 12:45:40 river kernel: [260715.128307] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=194.147.140.25 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=242 ID=24028 PROTO=TCP SPT=41873 DPT=54294 WINDOW=1024 RES=0x00 SYN URGP=0
+Jan 31 12:46:09 river kernel: [260744.333203] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=221.164.31.44 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=49 ID=54844 PROTO=TCP SPT=28049 DPT=23 WINDOW=47224 RES=0x00 SYN URGP=0
+Jan 31 12:46:28 river kernel: [260763.664021] geo-filter DROP IN=enp2s0 OUT= MAC=00:01:c0:0c:b0:a1:10:13:31:cb:27:48:08:00 SRC=185.156.73.12 DST=192.168.1.2 LEN=40 TOS=0x00 PREC=0x00 TTL=180 ID=51557 PROTO=TCP SPT=57520 DPT=33443 WINDOW=1024 RES=0x00 SYN URGP=0
 ```
 
-* with parsed timestamps:
+#### With parsed timestamps
 
 ```bash
 $ grep 'geo-filter DROP' /var/log/syslog | \
   tail -n5 | \
-  ./ngf-parse-log.py --config=config.yaml --tz='Europe/Rome' 
+  ./ngf-parse-log.py --config=config.yaml --tz='Europe/Rome'
 2021-01-31T12:44:03+01:00 194.147.140.24 GB
 2021-01-31T12:44:31+01:00 194.147.140.21 GB
 2021-01-31T12:45:40+01:00 194.147.140.25 GB
