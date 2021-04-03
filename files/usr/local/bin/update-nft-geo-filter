@@ -88,7 +88,7 @@ Example:
 
 rerun_as_root "$@" --
 (>&2 echo -en "[$(date '+%F %H:%M:%S')][notice]\\t" )
-(>&2 echo "Start nftable geo-filter uppdate." )
+(>&2 echo "Start nftable geo-filter update." )
 
 #################### Options
 debug=false
@@ -160,6 +160,7 @@ declare -a POLICY_CHOICES=('ALLOW' 'DENY')
 
 # default values for config
 INTERFACE=''
+POLICY=''
 TABLE_NAME=''
 TABLE_FAMILY=''
 COUNTRIES=''
@@ -203,6 +204,7 @@ set -u
 
 echoverbose 'Arguments:'
 echoverbose " * INTERFACE: $INTERFACE"
+echoverbose " * POLICY: $POLICY"
 echoverbose " * TABLE_NAME: $TABLE_NAME"
 echoverbose " * TABLE_FAMILY: $TABLE_FAMILY"
 echoverbose " * COUNTRIES: $COUNTRIES"
@@ -222,7 +224,7 @@ IFS=' ' read -r -a countries_arr <<< "$COUNTRIES"
 # convert allow ips to the related option
 declare -a exceptions_opt
 exceptions_opt=()
-if [ ! -z "${ALLOW_IPS}" ]; then
+if [ -n "${ALLOW_IPS}" ]; then
   allow_ips_comma="${ALLOW_IPS// /,}"
   exceptions_opt=('--exceptions' "$allow_ips_comma")
 fi
@@ -250,7 +252,7 @@ else
 fi
 
 # reload docker
-if $(systemctl is-active docker >/dev/null); then
+if systemctl is-active docker >/dev/null; then
   run systemctl reload docker
 fi
 
